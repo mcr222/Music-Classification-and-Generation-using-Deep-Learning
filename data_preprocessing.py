@@ -4,6 +4,8 @@ import scipy.io.wavfile as wav
 import sounddevice as sd
 import os
 from subprocess import call
+import time
+
 '''
 The midi files in each folder are repetitions of the same song.
 Removing repeated files: 
@@ -24,75 +26,125 @@ Reproduce raw wav     ffplay input_file.wav
 
 '''
 def readWavToNumpy(path):
-    [rate, data] = wav.read(path)
-    if(rate!=44100):
-        print "NO correct sample rate!!!"
+    print "Reading wav file: " + path
+    i=0
+    data30seclen=0
+    data30secboth = []
+    firstfragment = True
+    secondfragment = True
+    while len(data30secboth)!=2 and i<10:
+        time.sleep(0.2)
+        [rate, data] = wav.read(path)
+        if(rate!=44100):
+            print "NO correct sample rate!!!"
+            
+#         print rate
+#         print len(data)
+    #     print len(data)/rate
+    #     print len(data)/rate/60
+        #downsampling data by a factor of 10
+        downsamplingfactor = 10
+        datadown = data[0::downsamplingfactor]
+        ratedown = rate//downsamplingfactor
+        datadownlen = len(datadown)
+        thirtysec = 30*ratedown
+        fivesec = 5*ratedown
+#         print thirtysec
+        if fivesec+thirtysec < datadownlen and firstfragment:
+            data30secboth.append(datadown[fivesec:fivesec+thirtysec])
+            firstfragment = False
+            
+        if 2*fivesec+2*thirtysec < datadownlen and secondfragment:
+            data30secboth.append(datadown[2*fivesec+thirtysec:2*fivesec+2*thirtysec])
+            secondfragment = False
+
+        i+=1
+        #print "iiiiiii " + str(i)
+    #print "data 30sec both " + str(len(data30secboth))
+    return data30secboth
+
+
+starttime = time.time()
+print "Loading all labels to dictionary"
+genre_label_path = "../msd_tagtraum_cd2c.cls"
+genre_label_dictionary = {}
+all_labels = {'Reggae': 0, 'Latin': 1, 'RnB': 2, 'Jazz': 3, 'Metal': 4, 'Pop': 5, 'Punk': 6, 'Country': 7, 'New Age': 8, 'Rap': 9, 'Rock': 10, 'World': 11, 'Blues': 12, 'Electronic': 13, 'Folk': 14}
+with open(genre_label_path,'r') as genre_label_file:
+    i=0
+    for line in genre_label_file:
+        if i>-1:
+            out = line.split("\t")
+            genre_label_dictionary[out[0]] = out[1].replace("\n","")
+            #all_labels[out[1].replace("\n","")]=0
+        else:
+            break
+        i+=1
         
-    print rate
-    print len(data)
-    print len(data)/rate
-    print len(data)/rate/60
-    #downsampling data by a factor of 10
-    downsamplingfactor = 10
-    datadown = data[0::downsamplingfactor]
-    ratedown = rate//downsamplingfactor
-    datadownlen = len(datadown)
-    middle = datadownlen//2
-    thirtysec = 30*ratedown
-    data30sec = datadown[middle:middle+thirtysec]
-    return data30sec
+print "DONE Loading all labels to dictionary"
 
-
-global_path = "ex_song/TRAXLZU12903D05F94/a.wav"
-global_path = "ex_files/"
-
-# print "Loading all labels to dictionary"
-# genre_label_path = "../msd_tagtraum_cd2c.cls"
-# genre_label_dictionary = {}
-# with open(genre_label_path,'r') as genre_label_file:
-#     i=0
-#     for line in genre_label_file:
-#         if i<10:
-#             out = line.split("\t")
-#             genre_label_dictionary[out[0]] = out[1].replace("\n","")
-#         else:
-#             break
-#         i+=1
-# 
-# print genre_label_dictionary
-# print genre_label_dictionary['TRAAAGF12903CEC202']
-# print "Labels loaded"
-
-
-full_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/"
-fname= "a.mid"
-output_filename = fname.replace(".mid","")
-call("timidity -OwM " + full_path+ fname+ " "+ full_path+ output_filename +".wav "+ " ", shell=True)
-#call("lame " + full_path+"/"+ output_filename +".wav" + " " +full_path+"/"+ output_filename+".mp3"+ " &> /dev/null", shell=True)
-
- 
-# for dirName, subdirList, fileList in os.walk(global_path):
-#     print('Found directory: %s' % dirName)
-#     first = True
-#     for fname in fileList:
-#         fullpath = dirName+"/"+fname
-#         if(first):
-#             track_ID = dirName.split("/")[-1]
-#             print track_ID
-#             first = False
-#             output_filename = fname.replace(".mid","")
-#             print fullpath
-#             call("timidity -OwM "+ fullpath, shell=True)
-#              
-#             #label = genre_label_dictionary[track_ID]
-#             
-#             
-#         os.remove(fullpath)
+root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/ex_files"
+songs = []
+labels = []
+batchno=0
+all_labeled_songs = 0
+all_iterated_songs = 0
+all_iterated_files = 0
+for dirName, subdirList, fileList in os.walk(root_path):
+    print('Found directory: %s' % dirName)
+    first = True
+    for fname in fileList:
+        full_path = dirName+"/"
+        all_iterated_files += 1
+        if(first):
+            all_iterated_songs +=1
+            track_ID = dirName.split("/")[-1]
+            first = False
+            if track_ID in genre_label_dictionary:
+                label = all_labels[genre_label_dictionary[track_ID]]
+                print track_ID
+                print label
+                output_filename = fname.replace(".mid","")
+                call("timidity -OwM " + full_path+ fname+ " "+ full_path+ output_filename +".wav "+ " &> /dev/null", shell=True)
+                time.sleep(0.4)
+                song = readWavToNumpy(full_path+output_filename +".wav")
+                #print "songs added " + str(song)
+                songs.extend(song)
+                if(len(song)==1):
+                    labels.append(label)
+                if(len(song)==2):
+                    labels.extend([label,label])
+                
+                os.remove(full_path+output_filename +".wav")
+                all_labeled_songs +=1
+                
+                if(len(songs)==10):
+                    print "Saving batch number " + str(batchno)
+                    np.save("songs_10batch" +str(batchno)+".npy",songs)
+                    np.save("labels_10batch"+str(batchno)+".npy",labels)
+                    songs = []
+                    labels = []
+                    batchno+=1
+                
+            else:
+                print "No label for " + track_ID
+              
+        #os.remove(full_path+fname)
         
+print "All iterated files "+str(all_iterated_files)
+print "All iterated songs "+str(all_iterated_songs)
+print "All labeled files " + str(all_labeled_songs)
+print "Final batch number " + str(batchno)
+print "Elapsed time " + str(time.time()-starttime)
+#This is the last batch (not saved cause it does not have 10 songs)
+np.save("songs.npy",songs)
+np.save("labels.npy",labels)
 
 #This command only works on python command not in eclipse
+#songs = np.load('songs.npy')
+#labels = np.load('labels.npy')
+#ratedown=4410
 # sd.play(data, rate)
-# sd.play(datadown,ratedown)
+# sd.play(songs[0],ratedown)
 
 
 
