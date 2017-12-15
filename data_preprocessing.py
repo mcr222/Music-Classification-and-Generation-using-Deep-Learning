@@ -82,13 +82,19 @@ with open(genre_label_path,'r') as genre_label_file:
         
 print "DONE Loading all labels to dictionary"
 
-root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/ex_files"
+#root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/ex_files"
+#root_path = "/media/mcr222/First_Backup/lmd_matched"
+folder = "L"
+root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/lmd_matched/"+folder
+#output_folder = "/media/mcr222/First_Backup/output"
+output_folder = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output/" + folder
 songs = []
 labels = []
 batchno=0
 all_labeled_songs = 0
 all_iterated_songs = 0
 all_iterated_files = 0
+total_missed_wavs = 0
 for dirName, subdirList, fileList in os.walk(root_path):
     print('Found directory: %s' % dirName)
     first = True
@@ -105,39 +111,61 @@ for dirName, subdirList, fileList in os.walk(root_path):
                 print label
                 output_filename = fname.replace(".mid","")
                 call("timidity -OwM " + full_path+ fname+ " "+ full_path+ output_filename +".wav "+ " &> /dev/null", shell=True)
-                time.sleep(0.4)
-                song = readWavToNumpy(full_path+output_filename +".wav")
-                #print "songs added " + str(song)
-                songs.extend(song)
-                if(len(song)==1):
-                    labels.append(label)
-                if(len(song)==2):
-                    labels.extend([label,label])
-                
-                os.remove(full_path+output_filename +".wav")
-                all_labeled_songs +=1
-                
-                if(len(songs)==10):
-                    print "Saving batch number " + str(batchno)
-                    np.save("songs_10batch" +str(batchno)+".npy",songs)
-                    np.save("labels_10batch"+str(batchno)+".npy",labels)
-                    songs = []
-                    labels = []
-                    batchno+=1
+                time.sleep(3)
+                try:
+                    song = readWavToNumpy(full_path+output_filename +".wav")
+                    
+                    #print "songs added " + str(song)
+                    songs.extend(song)
+                    if(len(song)==1):
+                        labels.append(label)
+                    if(len(song)==2):
+                        labels.extend([label,label])
+                    
+                    os.remove(full_path+output_filename +".wav")
+                    all_labeled_songs +=1
+                    print "Length of songs: " + str(len(songs))
+                    if(len(songs)==10):
+                        print "Saving batch number " + str(batchno)
+                        np.save(output_folder+"/songs_10batch" +str(batchno)+".npy",songs)
+                        np.save(output_folder+"/labels_10batch"+str(batchno)+".npy",labels)
+                        songs = []
+                        labels = []
+                        batchno+=1
+                    elif(len(songs)>10):
+                        print "Saving batch number " + str(batchno)
+                        np.save(output_folder+"/songs_10batch" +str(batchno)+".npy",songs[0:10])
+                        np.save(output_folder+"/labels_10batch"+str(batchno)+".npy",labels[0:10])
+                        songs = []
+                        labels = []
+                        songs.append(songs[-1])
+                        labels.append(labels[-1])
+                        batchno+=1
+                        
+                except:
+                    print "Missed wav value!!!"
+                    total_missed_wavs += 1
+                    first = True
+                    time.sleep(2)
+                    try:
+                        os.remove(full_path+output_filename +".wav")
+                    except:
+                        print "Could not remove file"
                 
             else:
                 print "No label for " + track_ID
               
         #os.remove(full_path+fname)
         
+print "Total missed wavs " + str(total_missed_wavs)   
 print "All iterated files "+str(all_iterated_files)
 print "All iterated songs "+str(all_iterated_songs)
 print "All labeled files " + str(all_labeled_songs)
 print "Final batch number " + str(batchno)
 print "Elapsed time " + str(time.time()-starttime)
 #This is the last batch (not saved cause it does not have 10 songs)
-np.save("songs.npy",songs)
-np.save("labels.npy",labels)
+np.save(output_folder+"/songs.npy",songs)
+np.save(output_folder+"/labels.npy",labels)
 
 #This command only works on python command not in eclipse
 #songs = np.load('songs.npy')
