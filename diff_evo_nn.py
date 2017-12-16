@@ -144,7 +144,11 @@ class DifferentialEvolution:
             print("Generation: ", self._generation, " || ", "Average score: ", new_gen_avg,
                   ", best score: ", new_gen_best, "best param: ", new_gen_best_param)
 
-        return population, self._scores
+        parsed_back_population = []
+        for indiv in population:
+            parsed_back_population.append(self._parse_back(indiv))
+
+        return parsed_back_population, self._scores
 
     # define bounds of each individual depending on type
     def _individual_representation(self):
@@ -267,7 +271,7 @@ class DifferentialEvolution:
         original_representation = []
         for index, parameter in enumerate(individual):
             if self.types[index] == self._types[2]:
-                original_representation.append(self.parbounds[parameter])
+                original_representation.append(self.parbounds[index][parameter])
             else:
                 original_representation.append(parameter)
 
@@ -287,7 +291,7 @@ if __name__ == "__main__":
 
     objective_fun = main
 
-    diff_evo = DifferentialEvolution(objective_fun,[(100, 150),(0.001, 0.1)], ['int', 'float'], direction='max', maxiter=2,popsize=4)
+    diff_evo = DifferentialEvolution(objective_fun,[(100, 150),(0.001, 0.1)], ['float', 'float'], direction='max', maxiter=2,popsize=4)
 
     results = diff_evo.solve()
 
