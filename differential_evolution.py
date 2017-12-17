@@ -1,10 +1,21 @@
 '''
-Differential evolution algorithm with parallelization option
+Differential evolution algorithm extended to allow for categorical and integer values for optimization of hyperparameter
+space in Neural Networks, including an option for parallelization.
 
-This algorithm will create a full population to be evaluated, unlink typical differential evolution where each
+This algorithm will create a full population to be evaluated, unlike typical differential evolution where each
 individual get compared and selected sequentially. This allows the user to send a whole population of parameters
 to a cluster and run computations in parallel, after which each individual gets evaluated with their respective
 target or trial vector.
+
+User will have to define:
+- Objective function to be optimized
+- Bounds of each parameter (all possible values)
+- The Types of each parameter, in order to be able to evaluate categorical, integer or floating values.
+- Direction of the optimization, i.e. maximization or minimization
+- Number of iterations, i.e. the amount of generations the algorithm will run
+- The population size, rule of thumb is to take between 5-10 time the amount of parameters to optimize
+- Mutation faction between [0, 2)
+- Crossover between [0, 1], the higher the value the more mutated values will crossover
 '''
 
 import random
@@ -149,11 +160,13 @@ class DifferentialEvolution:
         if self._generation == 0:
             for target_vec in population:
                 parsed_target_vec = self._parse_back(target_vec)
+                # parsed_target_vec = self._parse_to_dict(parsed_target_vec)
                 target_vec_score = self.objective_function(parsed_target_vec)
                 self._scores.append(target_vec_score)
 
         for index, trial_vec in enumerate(donor_population):
             parsed_trial_vec = self._parse_back(trial_vec)
+            # parsed_trial_vec = self._parse_to_dict(parsed_trial_vec)
             trial_vec_score_i = self.objective_function(parsed_trial_vec)
             target_vec_score_i = self._scores[index]
             if self.direction == 'max':
