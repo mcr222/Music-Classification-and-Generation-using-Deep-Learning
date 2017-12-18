@@ -154,7 +154,7 @@ class DifferentialEvolution:
         return trial_population
 
     # select the best individuals from each generation
-    def _selection(self, population, donor_population):
+    def _selection(self, population, trial_population):
         # Calculate trial vectors and target vectors and select next generation
 
         if self._generation == 0:
@@ -163,7 +163,7 @@ class DifferentialEvolution:
                 target_vec_score = self.objective_function(parsed_target_vec)
                 self._scores.append(target_vec_score)
 
-        for index, trial_vec in enumerate(donor_population):
+        for index, trial_vec in enumerate(trial_population):
             parsed_trial_vec = self._parse_back(trial_vec)
             trial_vec_score_i = self.objective_function(parsed_trial_vec)
             target_vec_score_i = self._scores[index]
