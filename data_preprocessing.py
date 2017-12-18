@@ -84,7 +84,7 @@ print "DONE Loading all labels to dictionary"
 
 #root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/ex_files"
 #root_path = "/media/mcr222/First_Backup/lmd_matched"
-folder = "L"
+folder = "Z"
 root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/lmd_matched/"+folder
 #output_folder = "/media/mcr222/First_Backup/output"
 output_folder = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output/" + folder
