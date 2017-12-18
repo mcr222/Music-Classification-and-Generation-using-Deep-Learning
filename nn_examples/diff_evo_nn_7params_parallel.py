@@ -1,3 +1,49 @@
+# Required imports
+import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.wrappers.scikit_learn import KerasClassifier
+
+
+# Function to pass to the Differential Evolution algorithm
+def objective_function(individual):
+    model = KerasClassifier(
+        build_fn=create_model, init=individual[0], optimizer=individual[1],
+        epochs=individual[2], batch_size=individual[3], activation1=individual[4],
+        activation2=individual[5], activation3=individual[6], verbose=0)
+    history = model.fit(X, Y, verbose=0)
+    acc = max(history.history['acc'])
+    return acc
+
+def parallelobjective(population_dict):
+    popsize = [len(v) for v in population_dict.values()][0]
+    results = []
+
+    print(population_dict)
+    for index in range(popsize):
+        individual = []
+        for key, value in population_dict.items():
+            individual.append(value[index])
+        print(individual)
+        results.append(objective_function(individual))
+
+    return results
+
+# Function to create model, required for KerasClassifier
+def create_model(init, optimizer, activation1, activation2, activation3):
+    # Create model
+    model = Sequential()
+    model.add(Dense(12, input_dim=8, init=init, activation=activation1))
+    model.add(Dense(8, init=init, activation=activation2))
+    model.add(Dense(1, init=init, activation=activation3))
+
+    # Compile model
+    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    return model
+
+
+
+
 '''
 Differential evolution algorithm extended to allow for categorical and integer values for optimization of hyperparameter
 space in Neural Networks, including an option for parallelization.
@@ -158,15 +204,25 @@ class DifferentialEvolution:
         # Calculate trial vectors and target vectors and select next generation
 
         if self._generation == 0:
+            parsed_population = []
             for target_vec in population:
                 parsed_target_vec = self._parse_back(target_vec)
-                target_vec_score = self.objective_function(parsed_target_vec)
-                self._scores.append(target_vec_score)
+                parsed_population.append(parsed_target_vec)
 
+            parsed_population = self._parse_to_dict(parsed_population)
+            self._scores = self.objective_function(parsed_population)
+
+        parsed_trial_population = []
         for index, trial_vec in enumerate(donor_population):
             parsed_trial_vec = self._parse_back(trial_vec)
-            trial_vec_score_i = self.objective_function(parsed_trial_vec)
-            target_vec_score_i = self._scores[index]
+            parsed_trial_population.append(parsed_trial_vec)
+
+        parsed_trial_population =  self._parse_to_dict(parsed_trial_population)
+        trial_population_scores = self.objective_function(parsed_trial_population)
+
+        for i in range(self.n):
+            trial_vec_score_i = trial_population_scores[i]
+            target_vec_score_i = self._scores[i]
             if self.direction == 'max':
                 if trial_vec_score_i > target_vec_score_i:
                     self._scores[index] = trial_vec_score_i
@@ -191,31 +247,46 @@ class DifferentialEvolution:
 
         return original_representation
 
-    # for parallelization purposes one can parse the population in dictionary format
+    # for parallelization purposes one can parse the population from a list to a  dictionary format
+    # User only has to add the parameters he wants to optimize to population_dict
     def _parse_to_dict(self, population):
-        population_dict = {'learning_rate' : [], 'dropout' : []}
+        population_dict = {'init': [], 'optimizer': [], 'epochs': [], 'batches': [], 'activation_function1': [],
+                           'activation_function2': [], 'activation_function3': []}
         for indiv in population:
-            population_dict['learning_rate'].append(indiv[0])
-            population_dict['dropout'].append(indiv[1])
-
+            population_dict['init'].append(indiv[0])
+            population_dict['optimizer'].append(indiv[1])
+            population_dict['epochs'].append(indiv[2])
+            population_dict['batches'].append(indiv[3])
+            population_dict['activation_function1'].append(indiv[4])
+            population_dict['activation_function2'].append(indiv[5])
+            population_dict['activation_function3'].append(indiv[6])
         return population_dict
-
 
 
 if __name__ == "__main__":
 
-    # example function
-    def func2(x):
-        # Beale's function, use bounds=[(-4.5, 4.5),(-4.5, 4.5)], f(3,0.5)=0.
-        term1 = (1.500 - x[0] + x[0] * x[1]) ** 2
-        term2 = (2.250 - x[0] + x[0] * x[1] ** 2) ** 2
-        term3 = (2.625 - x[0] + x[0] * x[1] ** 3) ** 2
-        return term1 + term2 + term3
+    # fix random seed for reproducibility
+    seed = 7
+    np.random.seed(seed)
+    # load pima indians dataset
+    dataset = np.loadtxt("data/pima-indians-diabetes.csv", delimiter=",")
+    # split into input (X) and output (Y) variables
+    X = dataset[:, 0:8]
+    Y = dataset[:, 8]
 
-    objective_fun = func2
+    # Setting the bounds
+    bounds = [("glorot_uniform", "normal", "uniform"), ("rmsprop", "adam"), (50, 100, 150), (5, 10, 20)]
 
-    diff_evo = DifferentialEvolution(objective_fun,[(-4.5, 4.5),(-4.5, 4.5)], ['float', 'float'], direction='min', maxiter=100,popsize=10)
+    activation_functions = ('softmax', 'elu', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear')
+    for i in range(1, 4):
+        bounds.append(activation_functions)
 
+    # Setting the parameters's types
+    types = []
+    for i in range(1, 8):
+        types.append('cat')
+
+    diff_evo = DifferentialEvolution(parallelobjective, bounds, types, direction='max', maxiter=2, popsize=4)
     results = diff_evo.solve()
 
     print("Population: ", results[0])
