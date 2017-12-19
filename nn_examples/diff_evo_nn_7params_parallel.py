@@ -63,7 +63,6 @@ User will have to define:
 - Mutation faction between [0, 2)
 - Crossover between [0, 1], the higher the value the more mutated values will crossover
 '''
-
 import random
 
 class DifferentialEvolution:
@@ -118,7 +117,7 @@ class DifferentialEvolution:
             b =()
             # if categorical then take bounds from 0 to number of items
             if item == self._types[2]:
-                b = (0, len(self.parbounds[index]) - 1)
+                b = (0, int(len(self.parbounds[index]) - 1))
             # if float/int then take given bounds
             else:
                 b = self.parbounds[index]
@@ -156,7 +155,7 @@ class DifferentialEvolution:
 
             # check if param needs rounding
             if self.types[i] != 'float':
-                par = round(par)
+                par = int(round(par))
             indiv_correct.append(par)
         return indiv_correct
 
@@ -243,6 +242,7 @@ class DifferentialEvolution:
             if self.types[index] == self._types[2]:
                 original_representation.append(self.parbounds[index][parameter])
             else:
+
                 original_representation.append(parameter)
 
         return original_representation

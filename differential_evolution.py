@@ -110,7 +110,7 @@ class DifferentialEvolution:
 
             # check if param needs rounding
             if self.types[i] != 'float':
-                par = round(par)
+                par = int(round(par))
             indiv_correct.append(par)
         return indiv_correct
 
