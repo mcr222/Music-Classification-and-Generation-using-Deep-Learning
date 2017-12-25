@@ -224,12 +224,12 @@ class DifferentialEvolution:
             target_vec_score_i = self._scores[i]
             if self.direction == 'max':
                 if trial_vec_score_i > target_vec_score_i:
-                    self._scores[index] = trial_vec_score_i
-                    population[index] = trial_vec
+                    self._scores[i] = trial_vec_score_i
+                    population[i] = trial_population[i]
             else:
                 if trial_vec_score_i < target_vec_score_i:
-                    self._scores[index] = trial_vec_score_i
-                    population[index] = trial_vec
+                    self._scores[i] = trial_vec_score_i
+                    population[i] = trial_population[i]
 
         self._generation += 1
 
