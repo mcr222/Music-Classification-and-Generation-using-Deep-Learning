@@ -21,3 +21,7 @@ print sum(labels_totals)
 
 #[94, 180, 605, 366, 298, 2519, 22, 1069, 94, 172, 4273, 28, 46, 660, 74]
 #10500
+
+#P(i)=1/15 considering a random classifier
+#P(F) = sum(i=0:14) of P(F|i)*P(i) = P(i) = 1/15
+
