@@ -1,5 +1,5 @@
 from keras.models import Sequential, Model
-from keras.layers import Dense, Conv1D, MaxPooling1D, Flatten, Embedding, Input, GlobalMaxPooling1D,Dropout
+from keras.layers import Dense, Conv1D, MaxPooling1D, Flatten, Embedding, Input, GlobalMaxPooling1D, Dropout
 from keras.utils import normalize
 from keras import optimizers
 
@@ -37,48 +37,50 @@ def createModel(filters, learning_rate, dropout):
 
     print(model.summary())
 
-
     sgd = optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
 
     return model
 
+
 def train_test_split(all_files, test_size=0.3):
     lenfiles = len(all_files)
-    lentest = int(lenfiles*test_size)
+    lentest = int(lenfiles * test_size)
     lentrain = lenfiles - lentest
-    
-    test = random.sample(all_files,lentest)
-    train = list(set(all_files)-set(test)) 
-    #print type(test)
-    #print type(train)
+
+    test = random.sample(all_files, lentest)
+    train = list(set(all_files) - set(test))
+    # print type(test)
+    # print type(train)
     random.shuffle(test)
     random.shuffle(train)
-    return train,test
+    return train, test
+
 
 def main():
     '''
        Creates the NN model and train it with the batch data available in the input_training_folder file.
     '''
 
-    #Global parameters
-    #Input folder that contains all the subfolders A,B,C...containing the batch files.
+    # Global parameters
+    # Input folder that contains all the subfolders A,B,C...containing the batch files.
 
-    #input_folder = "output/"  #In hops
-    input_folder= "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output2"
-    input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output"
+    # input_folder = "output/"  #In hops
+    input_folder = "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output"
+    # input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output"
 
-    #Parameters: For the NN model, initially three parameters are going to be considered as a parameter.
-    # The number of filters and learning rate
+    # Parameters: For the NN model, initially three parameters are going to be considered as a parameter.
+    # The number of filters, learning rate, dropout, epochs and batch size.
     filters = 128
     learning_rate = 0.01
     dropout = 0.2
-    epochs = 10
+    epochs = 1
+    batch_size = 20  # batch_size should be a multiple of 10.
     m = createModel(filters, learning_rate, dropout)
     metrics = m.metrics_names
-    print metrics
-    
-    #Split training and testing files
+    print(metrics)
+
+    # Split training and testing files
     all_files = []
     for folder in os.listdir(input_folder):
         print(folder)
@@ -86,13 +88,13 @@ def main():
             if file.startswith("songs_"):
                 all_files.append(input_folder + "/" + folder + "/" + file)
 
-    training_files,test_files = train_test_split(all_files, test_size=0.3)
-#     print(all_files)
-#     print()
-#     print("Training files: " + str(training_files))
-#     print()
-#     print("Test files: " + str(test_files))
-#     print()
+    training_files, test_files = train_test_split(all_files, test_size=0.3)
+    #     print(all_files)
+    #     print()
+    #     print("Training files: " + str(training_files))
+    #     print()
+    #     print("Test files: " + str(test_files))
+    #     print()
     print(len(all_files))
     print(len(training_files))
     print(len(test_files))
@@ -101,63 +103,83 @@ def main():
     train_results_acc = []
     test_results_loss = []
     test_results_acc = []
-    #We train the model. For each file in the training folder, we extract the batch, normalize it and then call the function
-    #train on batch from keras.
+
+    # We train the model. For each file in the training folder, we extract the batch, normalize it and then call the function
+    # train on batch from keras.
+    concatenations = int(batch_size / 10)
     for epoch in range(epochs):
         print("------- Executing epoch " + str(epoch))
-        for file in training_files:
-     
-            #Get input and label data from the same batch
-            if "songs_" in file:
-                label = file.replace("songs", "labels")
-                print("training " + file)
-                data = np.load(str(file))
-                normalizedData = normalize(data, axis=0, order=2)
-     
-                labels = np.load(str(label))
-                listY = []
-                for d in labels:
-                    listY.append([d])
-                x = m.train_on_batch(normalizedData, keras.utils.to_categorical(listY, num_classes=15) )
-                print("New batch: Train Loss " + str(x[0]) +  "Train accuracy " + str(x[1]))
-                train_results_loss.append(x[0])
-                train_results_acc.append(x[1])
-     
+        for i in range(0, len(training_files)):
+            # training_batch will store the final training batch of size batch_size. listY will do the same for the labels
+            training_batch = np.empty(shape=(1, 132300))
+            listY = []
+            print("NEW CONCATENATION")
+            training_batch = np.empty(shape=(1, 132300))
+
+            for j in range(0, concatenations):
+                # Get input and label data from the same batch
+                if training_files[i] is not None and "songs_" in training_files[i]:
+                    label = training_files[i].replace("songs", "labels")
+                    print("training " + training_files[i])
+                    data = np.load(str(training_files[i]))
+                    normalizedData = normalize(data, axis=0, order=2)
+
+                    training_batch = np.concatenate((training_batch, normalizedData), axis=0)
+
+                    labels = np.load(str(label))
+
+                    # print("New Labels")
+                    # print(labels)
+                    for d in labels:
+                        listY.append([d])
+                i += 1
+            print("training_batch shape" + str(training_batch.shape))
+            print("training batch labels size " + str(len(listY)))
+            #print(listY)
+
+            # As the first value of the training_batch is an initial array containing zeros, we start training from the
+            # first element of the array
+            x = m.train_on_batch(training_batch[1:], keras.utils.to_categorical(listY, num_classes=15))
+            print("New batch: Train Loss " + str(x[0]) + "Train accuracy " + str(x[1]))
+            train_results_loss.append(x[0])
+            train_results_acc.append(x[1])
+
         # We test the model. For each file in the test folder, we extract the batch, normalize it and then call the function
         # test on batch from keras. Note that the test_on_batch function does not add to all batches, but it gives testing metrics
-        #per batch. Thus, it is necessary to add all the results.
-        #we only test every few batches (when running on hops we only need to test at the end)
-        #TODO: only test on last epoch on hops
-        if(epoch%3==0 or epoch == epochs-1):
+        # per batch. Thus, it is necessary to add all the results.
+        # we only test every few batches (when running on hops we only need to test at the end)
+        # TODO: only test on last epoch on hops
+        if (epoch % 3 == 0 or epoch == epochs - 1):
             total_loss = 0
             total_accuracy = 0
             total_test_data = 0
-         
+
             for file in test_files:
-                if "songs_" in file :
+                if "songs_" in file:
                     label = file.replace("songs", "labels")
                     print("test " + file)
                     x_test = np.load(file)
                     x_test_normalized = normalize(x_test, axis=0, order=2)
-         
+
                     labels_test = np.load(label)
                     y_test = []
                     for d in labels_test:
                         y_test.append([d])
-         
+
                     x = m.test_on_batch(x_test_normalized, keras.utils.to_categorical(y_test, num_classes=15))
-         
-                    print("New batch: Test Loss " + str(x[0]) +  "Test accuracy " + str(x[1]))
-                    total_test_data +=1
-                    total_loss +=x[0]
-                    total_accuracy +=x[1]
-            
-            test_results_loss.append(total_loss/total_test_data)
-            test_results_acc.append(total_accuracy/total_test_data)
+
+                    print("New batch: Test Loss " + str(x[0]) + "Test accuracy " + str(x[1]))
+                    total_test_data += 1
+                    total_loss += x[0]
+                    total_accuracy += x[1]
+
+            test_results_loss.append(total_loss / total_test_data)
+            test_results_acc.append(total_accuracy / total_test_data)
             print("[Total test files] " + str(total_test_data))
-            print("[total_loss] " + str(total_loss) + " [total_loss] " + str(total_loss/total_test_data))
-            print("[total_accuracy] " + str(total_accuracy) + " [total_accuracy] " + str(total_accuracy/total_test_data))
-    
+            print("[total_loss] " + str(total_loss) + " [total_loss] " + str(total_loss / total_test_data))
+            print("[total_accuracy] " + str(total_accuracy) + " [total_accuracy] " + str(
+                total_accuracy / total_test_data))
+
     print("Final training loss: ")
     print(train_results_loss)
     print("Final training accuracy: ")
@@ -166,8 +188,9 @@ def main():
     print(test_results_loss)
     print("Final test accuracy: ")
     print(test_results_acc)
-    
-    
-    return total_accuracy/total_test_data
+
+
+    # return total_accuracy/total_test_data
+
 
 main()
