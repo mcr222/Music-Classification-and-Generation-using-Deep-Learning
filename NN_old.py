@@ -34,7 +34,7 @@ def createModel(filters, learning_rate, dropout):
     model.add(Conv1D(filters, 5, activation='relu'))
     model.add(MaxPooling1D(35))
     model.add(Flatten())
-    model.add(Dense(15))
+    model.add(Dense(15,activation='softmax'))
 
     print(model.summary())
 
@@ -67,7 +67,7 @@ def main():
 
     #input_folder = "output/"  #In hops
     input_folder= "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output2"
-    input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output"
+    input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output_small"
 
 
     #Parameters: For the NN model, initially three parameters are going to be considered as a parameter.
