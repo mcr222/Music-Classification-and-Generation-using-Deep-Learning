@@ -20,10 +20,11 @@ def createModel(filters, learning_rate, dropout):
     @:param dropout: Dropout value {0.0, 1.0}
         '''
     model = Sequential()
-    model.add(Embedding(1,
-                        100,
-                        input_length=132300))
-    model.add(Dropout(dropout))
+#     model.add(Embedding(1,
+#                         100,
+#                         input_length=132300))
+#     model.add(Dropout(dropout))
+    model.add(MaxPooling1D(5,input_shape = (132300,1)))
     model.add(Conv1D(filters, 5, activation='relu'))
     model.add(MaxPooling1D(5))
     model.add(Dropout(dropout))
@@ -66,16 +67,16 @@ def main():
     # Input folder that contains all the subfolders A,B,C...containing the batch files.
 
     # input_folder = "output/"  #In hops
-    input_folder = "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output"
-    # input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output"
+    #input_folder = "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output"
+    input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output"
 
     # Parameters: For the NN model, initially three parameters are going to be considered as a parameter.
     # The number of filters, learning rate, dropout, epochs and batch size.
     filters = 128
     learning_rate = 0.01
-    dropout = 0.2
-    epochs = 1
-    batch_size = 20  # batch_size should be a multiple of 10.
+    dropout = 0.7
+    epochs = 10
+    batch_size = 60  # batch_size should be a multiple of 10.
     m = createModel(filters, learning_rate, dropout)
     metrics = m.metrics_names
     print(metrics)
@@ -111,25 +112,25 @@ def main():
         print("------- Executing epoch " + str(epoch))
         for i in range(0, len(training_files)):
             # training_batch will store the final training batch of size batch_size. listY will do the same for the labels
-            training_batch = np.empty(shape=(1, 132300))
             listY = []
             print("NEW CONCATENATION")
-            training_batch = np.empty(shape=(1, 132300))
+            training_batch = np.empty(shape=(0, 132300))
 
             for j in range(0, concatenations):
                 # Get input and label data from the same batch
-                if training_files[i] is not None and "songs_" in training_files[i]:
+                if i<len(training_files) and "songs_" in training_files[i]:
                     label = training_files[i].replace("songs", "labels")
                     print("training " + training_files[i])
                     data = np.load(str(training_files[i]))
                     normalizedData = normalize(data, axis=0, order=2)
-
+                    print normalizedData.shape
                     training_batch = np.concatenate((training_batch, normalizedData), axis=0)
 
                     labels = np.load(str(label))
 
                     # print("New Labels")
                     # print(labels)
+                    #TODO: change for np.reshape(a,(3,1))
                     for d in labels:
                         listY.append([d])
                 i += 1
@@ -139,8 +140,10 @@ def main():
 
             # As the first value of the training_batch is an initial array containing zeros, we start training from the
             # first element of the array
-            x = m.train_on_batch(training_batch[1:], keras.utils.to_categorical(listY, num_classes=15))
-            print("New batch: Train Loss " + str(x[0]) + "Train accuracy " + str(x[1]))
+            training_batch = np.expand_dims(training_batch, axis=2)
+            
+            x = m.train_on_batch(training_batch, keras.utils.to_categorical(listY, num_classes=15))
+            print("New batch: Train Loss " + str(x[0]) + " Train accuracy " + str(x[1]))
             train_results_loss.append(x[0])
             train_results_acc.append(x[1])
 
@@ -166,6 +169,7 @@ def main():
                     for d in labels_test:
                         y_test.append([d])
 
+                    x_test_normalized = np.expand_dims(x_test_normalized, axis=2)
                     x = m.test_on_batch(x_test_normalized, keras.utils.to_categorical(y_test, num_classes=15))
 
                     print("New batch: Test Loss " + str(x[0]) + "Test accuracy " + str(x[1]))

@@ -129,7 +129,9 @@ def main():
 
             x = m.test_on_batch(x_test_normalized, keras.utils.to_categorical(y_test, num_classes=15))
 
-            print("New batch: Test Loss " + str(x[0]) +  "Test accuracy " + str(x[1]))
+            print("New batch: Test Loss " + str(x[0]) +  " Test accuracy " + str(x[1]))
+            print("Predictions on batch: ")
+            print(m.predict_on_batch(x_test_normalized))
             total_test_data +=1
             total_loss +=x[0]
             total_accuracy +=x[1]
