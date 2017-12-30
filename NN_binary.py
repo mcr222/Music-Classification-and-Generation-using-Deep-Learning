@@ -200,5 +200,5 @@ def main(filters = 128, filters_end=128,window=5,window_end=5, learning_rate = 0
 
     #return total_accuracy/total_test_data
 
-
-main(filters = 128, filters_end=128,window=5,window_end=5, learning_rate = 0.01, dropout = 0.7, epochs = 10, batch_size = 100)
+#CAREFUL: with too many filters, big window and big batch_size one might run out of main memory (RAM)
+main(filters = 120, filters_end=80,window=20,window_end=10, learning_rate = 0.014, dropout = 0.85, epochs = 13, batch_size = 110)
