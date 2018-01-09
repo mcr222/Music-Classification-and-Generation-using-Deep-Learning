@@ -7,24 +7,23 @@ from subprocess import call
 import time
 
 '''
-The midi files in each folder are repetitions of the same song.
-Removing repeated files: 
+This file creates the RawSonGenreDataset.
+'''
+
+'''
+Some observations:
+The midi files in each ID folder are repetitions of the same song. 
 
 Songs don't contain sang lyrics.
+
 Songs can be partitioned in 30 seconds with the same label.
 
-From midi -> mono wav    timidity -oWM *.mid
-From wav -> mp3 (lossless compression)     lame input_file.wav output_file.mp3
-From mp3 -> wav            ffmpeg input_file.mp3 output_file.wav     pcm_s16le, 44100 Hz, mono, s16, 705 kb/s
-MP3 compression works by reducing (or approximating) the accuracy of certain components of sound that are considered 
-to be beyond the hearing capabilities of most humans. This method is commonly referred to as perceptual coding, 
-or psychoacoustic modeling.
+From midi -> mono wav    timidity -oWM *.mid (using Ubuntu)
 
 Reproduce raw wav     ffplay input_file.wav
 
-
-
 '''
+
 def readWavToNumpy(path):
     print "Reading wav file: " + path
     i=0
@@ -84,9 +83,12 @@ print "DONE Loading all labels to dictionary"
 
 #root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/Music-Classification-and-Generation-using-Deep-Learning/ex_files"
 #root_path = "/media/mcr222/First_Backup/lmd_matched"
+#Set the folder, from A to Z
 folder = "Z"
+#Input Midi files
 root_path = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/lmd_matched/"+folder
-#output_folder = "/media/mcr222/First_Backup/output"
+
+#Output .npy files
 output_folder = "/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output/" + folder
 songs = []
 labels = []
@@ -105,6 +107,7 @@ for dirName, subdirList, fileList in os.walk(root_path):
             all_iterated_songs +=1
             track_ID = dirName.split("/")[-1]
             first = False
+            #Process midi file if track_ID is in dictionary of genre labels
             if track_ID in genre_label_dictionary:
                 label = all_labels[genre_label_dictionary[track_ID]]
                 print track_ID
@@ -125,6 +128,8 @@ for dirName, subdirList, fileList in os.walk(root_path):
                     os.remove(full_path+output_filename +".wav")
                     all_labeled_songs +=1
                     print "Length of songs: " + str(len(songs))
+                    
+                    #This is necessary since sometimes our function might missbehave and return just one sample
                     if(len(songs)==10):
                         print "Saving batch number " + str(batchno)
                         np.save(output_folder+"/songs_10batch" +str(batchno)+".npy",songs)
