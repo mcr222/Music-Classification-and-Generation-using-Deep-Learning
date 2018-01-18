@@ -39,6 +39,7 @@ def createModel(filters,filters_end,window,window_end, learning_rate, dropout):
     print(model.summary())
 
     sgd = optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = optimizers.Adam(lr=learning_rate)
     model.compile(optimizer=sgd, loss='binary_crossentropy', metrics=['accuracy'])
 
     return model
@@ -68,7 +69,7 @@ def main(filters = 128, filters_end=128,window=5,window_end=5, learning_rate = 0
 
     # input_folder = "output/"  #In hops
     #input_folder = "C:\\Users\\Diego\\Google Drive\\KTH\\Scalable Machine learning and deep learning\\project\\output"
-    input_folder="/home/mcr222/Documents/EIT/KTH/ScalableMachineLearning/MusicClassificationandGenerationusingDeepLearning/output_small"
+    input_folder="/media/mcr222/First_Backup/smaller_output"
 
     # Parameters: For the NN model, initially three parameters are going to be considered as a parameter.
     # The number of filters, learning rate, dropout, epochs and batch size.
@@ -106,6 +107,7 @@ def main(filters = 128, filters_end=128,window=5,window_end=5, learning_rate = 0
     concatenations = int(batch_size / 10)
     for epoch in range(epochs):
         print("------- Executing epoch " + str(epoch))
+        random.shuffle(training_files)
         for i in range(0, len(training_files)):
             # training_batch will store the final training batch of size batch_size. listY will do the same for the labels
             listY = []
@@ -201,4 +203,5 @@ def main(filters = 128, filters_end=128,window=5,window_end=5, learning_rate = 0
     #return total_accuracy/total_test_data
 
 #CAREFUL: with too many filters, big window and big batch_size one might run out of main memory (RAM)
-main(filters = 120, filters_end=80,window=20,window_end=10, learning_rate = 0.014, dropout = 0.85, epochs = 13, batch_size = 110)
+main(filters = 20, filters_end=10,window=900,window_end=10, learning_rate = 0.014, dropout = 0, epochs = 10, batch_size = 200)
+
